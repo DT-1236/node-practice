@@ -1,23 +1,38 @@
 const fs = require('fs');
 const axios = require('axios');
 
-function cat(path) {
+function cat(path, outputPath) {
   fs.readFile(path, 'utf8', function(err, data) {
     if (err) {
       console.error(err);
       process.exit(1);
     }
-    console.log(`file contents: ${data}`);
+    let dataString = `The file contents: ${data}`;
+    handleData(dataString, outputPath);
   });
 }
 
-async function webCat(url) {
+async function webCat(url, outputPath) {
   try {
     let response = await axios.get(url);
-    console.log(`The URL contents are: ${response.data}`);
+    let dataString = `The URL contents are: ${response.data}`;
+    handleData(dataString, outputPath);
   } catch (err) {
     console.error(`Error, status code: ${err.response.status}`);
     process.exit(1);
+  }
+}
+
+function handleData(dataString, outputPath) {
+  if (outputPath) {
+    fs.writeFile(outputPath, dataString, function(err) {
+      if (err) {
+        console.error(err);
+        process.exit(1);
+      }
+    });
+  } else {
+    console.log(dataString);
   }
 }
 
@@ -25,11 +40,22 @@ function checkForURL(str) {
   return str.slice(0, 4) === 'http';
 }
 
+function checkForOut() {
+  return process.argv[2] === '--out';
+}
+
 function handleFilePath() {
-  if (checkForURL(process.argv[2])) {
-    webCat(process.argv[2]);
+  if (checkForOut()) {
+    var outputPath = process.argv[3];
+    var sourcePath = process.argv[4];
   } else {
-    cat(process.argv[2]);
+    var sourcePath = process.argv[2];
+    var outputPath = undefined;
+  }
+  if (checkForURL(sourcePath)) {
+    webCat(sourcePath, outputPath);
+  } else {
+    cat(sourcePath, outputPath);
   }
 }
 
